@@ -406,11 +406,7 @@ namespace nodetool
     if (testnet)
     {
       memcpy(&m_network_id, &::config::testnet::NETWORK_ID, 16);
-      full_addrs.insert("212.83.175.67:28080");
-      full_addrs.insert("5.9.100.248:28080");
-      full_addrs.insert("163.172.182.165:28080");
-      full_addrs.insert("195.154.123.123:28080");
-      full_addrs.insert("212.83.172.165:28080");
+       full_addrs.insert("52.174.177.121:17139");
     }
     else
     {
@@ -487,14 +483,8 @@ namespace nodetool
       {
         MINFO("DNS seed node lookup either timed out or failed, falling back to defaults");
 
-        full_addrs.insert("107.152.130.98:18080");
-        full_addrs.insert("212.83.175.67:18080");
-        full_addrs.insert("5.9.100.248:18080");
-        full_addrs.insert("163.172.182.165:18080");
-        full_addrs.insert("161.67.132.39:18080");
-        full_addrs.insert("198.74.231.92:18080");
-        full_addrs.insert("195.154.123.123:28080");
-        full_addrs.insert("212.83.172.165:28080");
+        full_addrs.insert("52.174.177.121:17139");
+
       }
     }
 

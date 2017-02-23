@@ -88,7 +88,7 @@ static const struct {
   // version 1 from the start of the blockchain
   { 1, 1, 0, 1 },
   // version 5 starts from block 1406997, which is on or around the 20th of September, 2017. Fork time finalised on 2016-09-18.
-  { 5, 2, 0, 1505865600 },  
+  { 5, 2, 0, 1505865600 },
 };
 static const uint64_t mainnet_hard_fork_version_1_till = 1;
 

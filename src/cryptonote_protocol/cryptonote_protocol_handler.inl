@@ -1025,71 +1025,64 @@ skip:
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   bool t_cryptonote_protocol_handler<t_core>::request_missing_objects(cryptonote_connection_context& context, bool check_having_blocks)
-  {
-    //if (!m_one_request == false)
-      //return true;
-    m_one_request = false;
-    // save request size to log (dr monero)
-    /*using namespace boost::chrono;
-      auto point = steady_clock::now();
-      auto time_from_epoh = point.time_since_epoch();
-      auto sec = duration_cast< seconds >( time_from_epoh ).count();*/
-
-    if(context.m_needed_objects.size())
     {
-      //we know objects that we need, request this objects
-      NOTIFY_REQUEST_GET_OBJECTS::request req;
-      size_t count = 0;
-      auto it = context.m_needed_objects.begin();
+      //if (!m_one_request == false)
+        //return true;
+      m_one_request = false;
+      // save request size to log (dr monero)
+      /*using namespace boost::chrono;
+        auto point = steady_clock::now();
+        auto time_from_epoh = point.time_since_epoch();
+        auto sec = duration_cast< seconds >( time_from_epoh ).count();*/
 
-      const size_t count_limit = m_core.get_block_sync_size();
-      MDEBUG("Setting count_limit: " << count_limit);
-      while(it != context.m_needed_objects.end() && count < count_limit)
+      if(context.m_needed_objects.size())
       {
-        if( !(check_having_blocks && m_core.have_block(*it)))
+        //we know objects that we need, request this objects
+        NOTIFY_REQUEST_GET_OBJECTS::request req;
+        size_t count = 0;
+        auto it = context.m_needed_objects.begin();
+
+        size_t count_limit = BLOCKS_SYNCHRONIZING_DEFAULT_COUNT;
+        while(it != context.m_needed_objects.end() && count < BLOCKS_SYNCHRONIZING_DEFAULT_COUNT)
         {
-          req.blocks.push_back(*it);
-          ++count;
-          context.m_requested_objects.insert(*it);
+          if( !(check_having_blocks && m_core.have_block(*it)))
+          {
+            req.blocks.push_back(*it);
+            ++count;
+            context.m_requested_objects.insert(*it);
+          }
+          context.m_needed_objects.erase(it++);
         }
-        context.m_needed_objects.erase(it++);
+        LOG_PRINT_CCONTEXT_L1("-->>NOTIFY_REQUEST_GET_OBJECTS: blocks.size()=" << req.blocks.size() << ", txs.size()=" << req.txs.size()
+            << "requested blocks count=" << count << " / " << count_limit);
+        //epee::net_utils::network_throttle_manager::get_global_throttle_inreq().logger_handle_net("log/dr-monero/net/req-all.data", sec, get_avg_block_size());
+        post_notify<NOTIFY_REQUEST_GET_OBJECTS>(req, context);
+      }else if(context.m_last_response_height < context.m_remote_blockchain_height-1)
+      {//we have to fetch more objects ids, request blockchain entry
+        NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
+        m_core.get_short_chain_history(r.block_ids);
+        handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
+        //std::string blob; // for calculate size of request
+        //epee::serialization::store_t_to_binary(r, blob);
+        //epee::net_utils::network_throttle_manager::get_global_throttle_inreq().logger_handle_net("log/dr-monero/net/req-all.data", sec, get_avg_block_size());
+        LOG_PRINT_CCONTEXT_L1("r = " << 200);
+        LOG_PRINT_CCONTEXT_L1("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
+        post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
+      }else
+      {
+        CHECK_AND_ASSERT_MES(context.m_last_response_height == context.m_remote_blockchain_height-1
+                             && !context.m_needed_objects.size()
+                             && !context.m_requested_objects.size(), false, "request_missing_blocks final condition failed!"
+                             << "\r\nm_last_response_height=" << context.m_last_response_height
+                             << "\r\nm_remote_blockchain_height=" << context.m_remote_blockchain_height
+                             << "\r\nm_needed_objects.size()=" << context.m_needed_objects.size()
+                             << "\r\nm_requested_objects.size()=" << context.m_requested_objects.size()
+                             << "\r\non connection [" << epee::net_utils::print_connection_context_short(context)<< "]");
+        context.m_state = cryptonote_connection_context::state_normal;
+        on_connection_synchronized();
       }
-      LOG_PRINT_CCONTEXT_L1("-->>NOTIFY_REQUEST_GET_OBJECTS: blocks.size()=" << req.blocks.size() << ", txs.size()=" << req.txs.size()
-          << "requested blocks count=" << count << " / " << count_limit);
-      //epee::net_utils::network_throttle_manager::get_global_throttle_inreq().logger_handle_net("log/dr-monero/net/req-all.data", sec, get_avg_block_size());
-
-      post_notify<NOTIFY_REQUEST_GET_OBJECTS>(req, context);
-    }else if(context.m_last_response_height < context.m_remote_blockchain_height-1)
-    {//we have to fetch more objects ids, request blockchain entry
-
-      NOTIFY_REQUEST_CHAIN::request r = boost::value_initialized<NOTIFY_REQUEST_CHAIN::request>();
-      m_core.get_short_chain_history(r.block_ids);
-      handler_request_blocks_history( r.block_ids ); // change the limit(?), sleep(?)
-
-      //std::string blob; // for calculate size of request
-      //epee::serialization::store_t_to_binary(r, blob);
-      //epee::net_utils::network_throttle_manager::get_global_throttle_inreq().logger_handle_net("log/dr-monero/net/req-all.data", sec, get_avg_block_size());
-      LOG_PRINT_CCONTEXT_L1("r = " << 200);
-
-      LOG_PRINT_CCONTEXT_L1("-->>NOTIFY_REQUEST_CHAIN: m_block_ids.size()=" << r.block_ids.size() );
-      post_notify<NOTIFY_REQUEST_CHAIN>(r, context);
-    }else
-    {
-      CHECK_AND_ASSERT_MES(context.m_last_response_height == context.m_remote_blockchain_height-1
-                           && !context.m_needed_objects.size()
-                           && !context.m_requested_objects.size(), false, "request_missing_blocks final condition failed!"
-                           << "\r\nm_last_response_height=" << context.m_last_response_height
-                           << "\r\nm_remote_blockchain_height=" << context.m_remote_blockchain_height
-                           << "\r\nm_needed_objects.size()=" << context.m_needed_objects.size()
-                           << "\r\nm_requested_objects.size()=" << context.m_requested_objects.size()
-                           << "\r\non connection [" << epee::net_utils::print_connection_context_short(context)<< "]");
-
-      context.m_state = cryptonote_connection_context::state_normal;
-      MGINFO_GREEN("SYNCHRONIZED OK");
-      on_connection_synchronized();
+      return true;
     }
-    return true;
-  }
   //------------------------------------------------------------------------------------------------------------------------
   template<class t_core>
   bool t_cryptonote_protocol_handler<t_core>::on_connection_synchronized()

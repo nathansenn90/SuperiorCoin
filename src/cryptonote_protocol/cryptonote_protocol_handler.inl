@@ -741,8 +741,6 @@ namespace cryptonote
       //TODO: add announce usage here
       relay_transactions(arg, context);
     }
-    MGINFO_GREEN("SYNCHRONIZED OK");
-    on_connection_synchronized();
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------
